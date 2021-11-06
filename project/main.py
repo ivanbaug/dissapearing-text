@@ -4,6 +4,7 @@ from tkinter import Label, ttk, messagebox
 from tkinter.constants import CENTER, END, GROOVE, NONE, RIDGE, WORD
 
 import time
+import threading
 
 FONT_NAME = "Helvetica"
 
@@ -27,7 +28,14 @@ class Window(tk.Frame):
         self.font_info_box = tkFont.Font(family=FONT_NAME, size=12)
         self.font_countdown = tkFont.Font(family=FONT_NAME, size=40, weight="bold")
         # Vars
-        self.g = tk.DoubleVar(value=75.0)
+        # self.g = tk.DoubleVar(value=75.0)
+        self.time_var = 5
+        self._start_time = time.perf_counter()
+        self._current_time = time.perf_counter() - 3600
+        self.count_var = tk.StringVar()
+        self.count_var.set(f"{self.time_var}")
+        self.is_writing = False
+        self.is_counter_running = False
 
         # Title
         self.title_label = ttk.Label(self, text="Write your text", foreground="#008a25")
@@ -54,38 +62,55 @@ class Window(tk.Frame):
         )
         self.entry.configure(font=self.font_practice_box)
         self.entry.config(spacing1=10, spacing2=10)
-        # self.practice_text.tag_configure("center", justify="center")
-
-        # self.practice_text.insert("1.0", self.rand_phrase)
-        # self.practice_text.tag_add("center", "1.0", "end")
         self.entry.bind("<Key>", self.keystroke)
         self.entry.grid(row=0, column=0)
 
-        self.entry_label = ttk.Label(self, text="Set your timer:")
-        self.entry_label.grid(row=3, column=0, padx=10, pady=2, sticky="nsew")
-        # self.entry_label.configure(font=self.font_info_box)
+        # Frame for time customization
+        self.info_frame = ttk.LabelFrame(
+            self,
+            text="Set your countdown (in seconds)",
+            padding=(10, 10),
+            height=100,
+            width=300,
+        )
+        self.info_frame.grid(
+            row=3, column=0, padx=10, pady=(10, 10), sticky="ew", rowspan=3
+        )
 
         # Spinbox
-        spinbox = ttk.Spinbox(self, from_=5, to=120)
-        spinbox.insert(0, "5")
-        spinbox.grid(row=4, column=0, padx=10, pady=5, sticky="ew")
+        self.spinbox = ttk.Spinbox(
+            self.info_frame,
+            from_=5,
+            to=120,
+            wrap=True,
+            width=10,
+            textvariable=self.count_var,
+        )
+        # self.spinbox.insert(0, "5")
+        self.spinbox.pack(side="top", padx=10, pady=5)
+        self.count_var.trace("w", self.update_count_data)
 
-        # Countdown
+        # Other information
+        self.info_label = ttk.Label(
+            self.info_frame,
+            text="",
+            wraplength=240,
+            justify=CENTER,
+        )
+        self.info_label.pack(side="bottom", padx=10, pady=5)
+        # self.info_label.config(anchor=CENTER)
+
+        # Countdown Frame
         self.countdown_frame = ttk.LabelFrame(
-            self, text="Countdown", padding=(10, 10), height=100
+            self, text="Countdown", padding=(10, 10), height=100, width=200
         )
         self.countdown_frame.grid(
             row=3, column=1, padx=10, pady=(10, 10), sticky="nsew", rowspan=3
         )
-
-        # # Progressbar
-        # progress = ttk.Progressbar(
-        #     self.countdown_frame, value=0, variable=self.g, mode="determinate"
-        # )
-        # progress.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-
         # Coundown label
-        self.cd_label = ttk.Label(self.countdown_frame, text="5", foreground="#4d4c5c")
+        self.cd_label = ttk.Label(
+            self.countdown_frame, text=f"{self.time_var}", foreground="#4d4c5c"
+        )
         self.cd_label.place(relx=0.5, rely=0.5, anchor=CENTER)
         self.cd_label.configure(font=self.font_countdown)
 
@@ -102,10 +127,39 @@ class Window(tk.Frame):
         self.parent.rowconfigure(index=2, weight=1)
 
     def keystroke(self, key):
+        self.is_writing = True
+        self._start_time = time.perf_counter()
         print(key.char)
+        if not self.is_counter_running:
+            self.is_counter_running = True
+            x = threading.Thread(target=self.run_countdown)
+            x.start()
 
-    def update_count_data(self):
-        pass
+    def run_countdown(self):
+        while self._start_time + self.time_var > self._current_time:
+
+            self._current_time = time.perf_counter()
+            remaining_time = self.time_var - (self._current_time - self._start_time)
+            if remaining_time < 0:
+                remaining_time = 0
+            self.cd_label.config(text=f"{remaining_time:.1f}")
+            time.sleep(0.2)
+        # once the counter stops
+        self.is_counter_running = False
+
+    def update_count_data(self, var, indx, mode):
+        if self.is_writing:
+            self.info_label.config(
+                text="The countdown already started, change the timer once it ends."
+            )
+        else:
+            try:
+                tvar = self.count_var.get()
+                self.time_var = int(tvar)
+            except ValueError:
+                # Do nothing if gibberish is written on the spinner
+                pass
+            self.cd_label.config(text=f"{self.time_var}")
 
 
 if __name__ == "__main__":
