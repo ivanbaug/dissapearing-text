@@ -7,12 +7,10 @@ from pathlib import Path
 
 import time
 import threading
-import json, random, os
+import json, random
 
 FONT_NAME = "Helvetica"
 filepath = "project\\assets\\quotes.json"
-
-pwd = os.getcwd()
 
 
 class Window(tk.Frame):
@@ -59,6 +57,7 @@ class Window(tk.Frame):
         )
         self.title_label.configure(font=self.font_title, anchor=CENTER)
         self.new_quote()
+
         # Create a frame for practice text
         self.entry_frame = ttk.LabelFrame(self, text="Your text", padding=(10, 10))
         self.entry_frame.grid(
