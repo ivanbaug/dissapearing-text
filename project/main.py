@@ -1,12 +1,14 @@
 import tkinter as tk
 import tkinter.font as tkFont
-from tkinter import Label, ttk, messagebox
-from tkinter.constants import CENTER, END, GROOVE, NONE, RIDGE, WORD
+from tkinter import ttk
+from tkinter.constants import CENTER, END, WORD
 
 import time
 import threading
+import json, random
 
 FONT_NAME = "Helvetica"
+filepath = "project\\assets\\quotes.json"
 
 
 class Window(tk.Frame):
@@ -24,11 +26,13 @@ class Window(tk.Frame):
 
         # Define fonts
         self.font_practice_box = tkFont.Font(family=FONT_NAME, size=16)
-        self.font_title = tkFont.Font(family=FONT_NAME, size=20, weight="bold")
+        self.font_title = tkFont.Font(
+            family=FONT_NAME, size=14, weight="bold", slant="italic"
+        )
         self.font_info_box = tkFont.Font(family=FONT_NAME, size=12)
         self.font_countdown = tkFont.Font(family=FONT_NAME, size=40, weight="bold")
+
         # Vars
-        # self.g = tk.DoubleVar(value=75.0)
         self.time_var = 5
         self._start_time = time.perf_counter()
         self._current_time = time.perf_counter() - 3600
@@ -36,9 +40,18 @@ class Window(tk.Frame):
         self.count_var.set(f"{self.time_var}")
         self.is_writing = False
         self.is_counter_running = False
+        self.quotes = self.get_quotes()
 
+        temp_quote = random.choice(self.quotes)
+        print(temp_quote)
         # Title
-        self.title_label = ttk.Label(self, text="Write your text", foreground="#008a25")
+        self.title_label = ttk.Label(
+            self,
+            text=f"{temp_quote['quote']}\n-{temp_quote['author']}",
+            foreground="#008a25",
+            wraplength=520,
+            justify=CENTER,
+        )
         self.title_label.grid(
             row=0, column=0, padx=10, pady=5, sticky="nsew", columnspan=2
         )
@@ -129,7 +142,7 @@ class Window(tk.Frame):
     def keystroke(self, key):
         self.is_writing = True
         self._start_time = time.perf_counter()
-        print(key.char)
+        self.info_label.config(text="")
         if not self.is_counter_running:
             self.is_counter_running = True
             x = threading.Thread(target=self.run_countdown)
@@ -146,6 +159,8 @@ class Window(tk.Frame):
             time.sleep(0.2)
         # once the counter stops
         self.is_counter_running = False
+        self.is_writing = False
+        self.entry.delete("1.0", END)
 
     def update_count_data(self, var, indx, mode):
         if self.is_writing:
@@ -160,6 +175,14 @@ class Window(tk.Frame):
                 # Do nothing if gibberish is written on the spinner
                 pass
             self.cd_label.config(text=f"{self.time_var}")
+
+    def get_quotes(self):
+        with open(filepath, encoding="utf-8") as f:
+            data = json.load(f)
+        return data["quotes"]
+
+    def one_quote(self, quotes):
+        return random.choice(quotes)
 
 
 if __name__ == "__main__":
