@@ -1,14 +1,18 @@
 import tkinter as tk
 import tkinter.font as tkFont
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from tkinter.constants import CENTER, END, WORD
+from datetime import datetime as dt
+from pathlib import Path
 
 import time
 import threading
-import json, random
+import json, random, os
 
 FONT_NAME = "Helvetica"
 filepath = "project\\assets\\quotes.json"
+
+pwd = os.getcwd()
 
 
 class Window(tk.Frame):
@@ -42,12 +46,10 @@ class Window(tk.Frame):
         self.is_counter_running = False
         self.quotes = self.get_quotes()
 
-        temp_quote = random.choice(self.quotes)
-        print(temp_quote)
         # Title
         self.title_label = ttk.Label(
             self,
-            text=f"{temp_quote['quote']}\n-{temp_quote['author']}",
+            text="",
             foreground="#008a25",
             wraplength=520,
             justify=CENTER,
@@ -56,7 +58,7 @@ class Window(tk.Frame):
             row=0, column=0, padx=10, pady=5, sticky="nsew", columnspan=2
         )
         self.title_label.configure(font=self.font_title, anchor=CENTER)
-
+        self.new_quote()
         # Create a frame for practice text
         self.entry_frame = ttk.LabelFrame(self, text="Your text", padding=(10, 10))
         self.entry_frame.grid(
@@ -160,7 +162,20 @@ class Window(tk.Frame):
         # once the counter stops
         self.is_counter_running = False
         self.is_writing = False
+        input = self.entry.get("1.0", END)
         self.entry.delete("1.0", END)
+        answer = messagebox.askyesno(
+            "Your time is up", "Do you want to save what you typed?"
+        )
+        if answer:
+            saving_time = dt.now().strftime("%Y%m%d-%H%M%S")
+            new_name = f"MyText-{saving_time}.txt"
+            new_path = Path.cwd().joinpath(new_name)
+            with open(new_path, "w") as f:
+                f.write(input)
+            messagebox.showinfo("Done!", f"Your text was saved in '{new_path}'")
+
+        self.new_quote()
 
     def update_count_data(self, var, indx, mode):
         if self.is_writing:
@@ -181,8 +196,10 @@ class Window(tk.Frame):
             data = json.load(f)
         return data["quotes"]
 
-    def one_quote(self, quotes):
-        return random.choice(quotes)
+    def new_quote(self):
+        temp_quote = random.choice(self.quotes)
+        text = f"{temp_quote['quote']}\n-{temp_quote['author']}"
+        self.title_label.config(text=text)
 
 
 if __name__ == "__main__":
